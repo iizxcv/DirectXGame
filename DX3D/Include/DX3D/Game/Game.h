@@ -34,11 +34,14 @@ namespace dx3d
 	class Game: public Base
 	{
 	public:
-		Game();
+		Game(const Logger::LogLevel& level = Logger::LogLevel::Info);
 		virtual ~Game() override;
 
 		virtual void run() final;
 	private:
+		Logger m_loggerInstance;
+		Logger* m_loggerPtr{};
+		std::unique_ptr<GraphicsEngine> m_graphicsEngine{}; 
 		std::unique_ptr<Window> m_display{};
 		bool m_isRunning{ true };
 	};

@@ -25,25 +25,29 @@
 
 
 #include <DX3D/All.h>
+//#include <iostream>
 
 
 int main()
 {
 	try
 	{
-		dx3d::Game game{};
+		dx3d::Game game({dx3d::Logger::LogLevel::Info});
 		game.run();
 	}
-	catch (const std::runtime_error&)
+	catch (const std::runtime_error& e)
 	{
+		//std::cerr << "std::runtime_error: " << e.what() << std::endl;
 		return EXIT_FAILURE;
 	}
-	catch (const std::exception&)
+	catch (const std::exception& e)
 	{
+		//std::cerr << "std::exception: " << e.what() << std::endl;
 		return EXIT_FAILURE;
 	}
 	catch (...)
 	{
+		//std::cerr << "An unknown error occurred." << std::endl;
 		return EXIT_FAILURE;
 	}
 

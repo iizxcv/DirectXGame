@@ -24,16 +24,34 @@
 
 
 #pragma once
-
+#include <DX3D/Core/Common.h>
 
 
 namespace dx3d
 {
+	// Base 클래스 정의
 	class Base
 	{
 	public:
-		Base();
+		// 기본 생성자 선언 (가능한 기본 생성)
+		Base(const BaseDesc& desc);
+		// 가상 소멸자 선언 (상속받는 클래스들이 안전하게 소멸하도록 처리)
 		virtual ~Base();
+
+		virtual Logger& getLogger() const noexcept final;
+
+	protected:
+		// 복사 생성자 삭제. Base 객체를 복사해 생성하는 것을 금지
+		Base(const Base&) = delete;
+		// 이동 생성자 삭제. Base 객체를 이동해 생성하는 것을 금지
+		Base(Base&&) = delete;
+		// 복사 대입 연산자 삭제. Base 객체에 다른 Base 객체를 복사 대입하는 것을 금지
+		Base& operator = (const Base&) = delete;
+		// 이동 대입 연산자 삭제. Base 객체에 다른 Base 객체를 이동 대입하는 것을 금지
+		Base& operator = (Base&&) = delete;
+
+	protected:
+		Logger& m_logger;
 	};
 }
 
