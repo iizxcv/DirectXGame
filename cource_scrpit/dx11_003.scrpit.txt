@@ -1,0 +1,425 @@
+00:00:00 [Music] Hello everyone and welcome back to the
+00:00:06 C++ 3D game tutorial series. In this third episode, we will see how to create
+00:00:13 the swap chain which will allow us to manage multiple buffers for rendering
+00:00:19 and presenting frames to the screen. As always, we will face three main parts.
+00:00:25 the requirements, design and implementation of all the necessary components to create the swap
+00:00:33 chain. Let's start with the requirements. We need a C++ IDE. In this
+00:00:40 series, we use Visual Studio 2022 community. The target platform is
+00:00:46 Windows. The target graphics API is Direct X11. And the last but not least,
+00:00:53 a good understanding of the C++ programming language is recommended. Now we can start the design
+00:01:01 part. In the previous episode, we learned how to start building our graphics engine. We also initialized the
+00:01:09 direct 3D11 graphics API. In addition, we created a logger to print useful
+00:01:15 messages and integrated it across the subsystems of our engine using the
+00:01:20 dependency injection pattern and the dependency aggregation strategy. This time we will focus on
+00:01:28 implementing the swap chain. A swap chain is essentially a collection of
+00:01:33 buffers used for rendering a frame and presenting the frame to the screen.
+00:01:39 Think of it as a rotating queue of canvases. While one is being displayed,
+00:01:45 the next one is being drawn behind the scenes. But what do we mean by buffer?
+00:01:51 We mean a block of GPU memory used to store image data, specifically the
+00:01:57 pixels that make up a frame to be displayed on the screen. The image data stored in a swap chain
+00:02:04 buffer is essentially an array of pixels where each pixel holds color
+00:02:10 information. The final color value resulting from all our rendering operations for that frame. More
+00:02:18 specifically, each pixel typically contains the following components: red,
+00:02:23 green, blue, and alpha, which represents transparency or opacity.
+00:02:29 There are two types of buffers involved here. The back buffer and the front
+00:02:35 buffer. The back buffer is the one we are free to render into. It is not
+00:02:41 currently shown on the screen. The front buffer instead is the one presented to
+00:02:47 the screen. It's called swap chain because these buffers are continuously
+00:02:53 swapped. Let's break down what actually happens. When we create the swoop chain,
+00:03:00 we define how many buffers we want. In this case, three. All these buffers are
+00:03:06 stored in a circular queue. At any given time, only one buffer is shown on the
+00:03:11 screen. And this is considered the front buffer. The remaining buffers are back
+00:03:18 buffers waiting to be rendered into. At some point we render our 2D or 3D
+00:03:25 scene into the current back buffer. Then when we call swap chain
+00:03:31 present function, the current back buffer in the queue becomes the front
+00:03:36 buffer and the current front buffer moves to the back of the queue becoming
+00:03:41 a back buffer. Again, this cycle continues each frame. We can imagine
+00:03:48 this like a pad of paper. On each page, the artist draws a slightly different
+00:03:54 version of the scene. When we flip through the pages quickly, the image appears
+00:04:00 animated. This technique, where we work with three buffers, two back buffers,
+00:04:06 and one front buffer, is known as triple buffering. It helps reduce tearing,
+00:04:12 stuttering, and other visual artifacts. If we only have two buffers, one back
+00:04:18 buffer and one front buffer, then we are using double buffering. To keep things simple and
+00:04:25 easier to understand, this example assumes we are using full screen mode.
+00:04:30 In window withid mode, things become a bit trickier since the desktop window manager DWM is involved. We will dive
+00:04:39 deeper into how that works in the implementation section. The swap chain is a key software
+00:04:46 component in any rendering engine responsible for managing how rendered
+00:04:51 frames are presented to the screen. It decouples rendering from presentation
+00:04:58 which is essential for efficient and smooth graphics rendering. Let's see how
+00:05:03 to introduce it in our DX 3D engine. Since the render system is the software
+00:05:10 component responsible for managing the graphics API and handling its resources,
+00:05:16 we will give it the role of creating the swap chain to allow the render system to
+00:05:22 create not only the swap chain but also other future graphics resources provided
+00:05:27 by the graphics API. We will make use of the factory design pattern. The factory
+00:05:34 pattern is a creational design pattern that provides a way to create objects
+00:05:39 without specifying the extra class types directly. Instead of creating instances
+00:05:46 manually using make unique, make shared or similar functions, we let a factory
+00:05:51 class or method handle the creation. In this case, we will delegate the
+00:05:57 responsibility of resource creation to the render system, treating it as a
+00:06:03 factory for all graphics related resources. In practice, for the swap
+00:06:08 chain, we will add a method to our render system called create swap chain,
+00:06:15 which will allow us to create a swap chain in a quick and simple way.
+00:06:20 If you have any questions, doubts or comments about this topic, feel free to
+00:06:25 leave them in the comment section of this video or on our Discord server. You
+00:06:31 can find a link to the Discord server in the video description. Also, if you're finding
+00:06:36 these tutorials helpful, please consider supporting the developments on Patreon.
+00:06:42 Every contribution makes the difference, no matter the amount. Great. We have
+00:06:47 gathered all the necessary information to start the implementation. The very first thing we
+00:06:54 need to do is simplify and improve the way we log messages and throw exceptions
+00:06:59 by using handy macros. As first thing, let's go to the Win32 Windows C++ file.
+00:07:07 Here, let's copy the code snippet that allows us to log a message and throw an exception.
+00:07:13 Once we have that, we can head over the logger header file. Here we will start
+00:07:18 creating a macro using the define preprocessor directive. In C++ define is
+00:07:25 a pre-processor directive used to create macros. It tells the compiler to replace
+00:07:31 all the instances of a specific name with a value or code snippet before
+00:07:36 actual compilation begins. Let's give our macro a meaningful name. We will call it the X3D
+00:07:45 log error and throw. We can also define parameters for it. In this case, we will
+00:07:52 define a message parameter to pass both the log method and the
+00:07:57 exception. With that done, let's paste the copied code snippet under the macro
+00:08:03 definition. Since we are creating a multi-line macro, we need to use a
+00:08:08 backslash at the end of each line except the last to tell the prep-processor that
+00:08:14 the macro continues on the next line. Now we are ready to replace the
+00:08:20 hardcoded strings with the message
+00:08:28 parameter. Next, let's create another handy macro. Let's call it the X3D log
+00:08:35 error. As the name suggests, this macro will simply log an error message. To do
+00:08:41 this, we can reuse the log method called code we used
+00:08:49 earlier. Now, let's enhance our the X3D log error and throw macro by reusing the
+00:08:57 DX3D log error macro within it.
+00:09:06 Pay attention here. We should place the enumeration values in parenthesis to
+00:09:11 avoid any unexpected behavior during macro expansion. All right. Now we can use our
+00:09:18 new macros in the Win32 Windows C++ file and across all other classes in our
+00:09:24 engine.
+00:09:57 We can also use our macro in the render system C++ file. An important note here,
+00:10:04 we could simply replace what is under the field with the log error and for
+00:10:10 exception macro. The problem though is that working with the direct 3D11
+00:10:16 API generally involves checking an H result value. That's fine for a few
+00:10:23 calls, but if we need to handle many API calls this way, it can become cumbersome
+00:10:29 and less flexible. To solve this issue, let's create a suitable macro. We will start
+00:10:36 by creating a graphics log uter file inside the graphics
+00:11:00 module. Next, let's add the DX 3D name space.
+00:11:05 With that in place, let's create a macro called the X3D graphics log error and
+00:11:11 throw. We will design our macro so that we can pass any 3D11 function call as
+00:11:18 the first parameter and an error message string as the second. Let's now copy the code used to
+00:11:26 handle errors from the render system C++ file.
+00:11:49 We will replace the API call with a variable named HR, commonly used to
+00:11:55 store H results values. Be sure to wrap HR in parenthesis to prevent issues
+00:12:02 during macro expansion.
+00:12:14 Also, let's replace the error antly snippet with the macro we just created.
+00:12:48 here. An important thing, make sure to pass rest to the failed macro and not
+00:12:54 the original function call. Otherwise, we would end up calling the API function
+00:13:03 twice. Cool. Now we can use our new macro in the render system C++ file.
+00:13:36 As we can see, the code is much cleaner and easier to read.
+00:13:52 Let's finally test our program. As expected, the program throws an
+00:13:58 exception during direct 3D initialization.
+00:14:13 What we need to do now is finish creating other useful macros like log
+00:14:18 info and log warning which are identical to the log error macro we created
+00:14:24 earlier.
+00:14:48 Once that's done, let's use log info in the game C++ file.
+00:15:12 All right, everything seems to be working well. We are now ready to start creating the swap
+00:15:19 chain. As first step, let's go to the render system C++ file and call the
+00:15:25 query interface method on the ID3D11 device.
+00:15:30 Query interface is a core method used to ask an object if it supports a specific
+00:15:37 interface and if so to retrieve a pointer to that interface. To do this, we also need to
+00:15:45 use another Andy macro called IID PPV arcs. This macro automatically provides
+00:15:53 the correct interface ID and safely casts the output pointer when calling a
+00:16:00 function like query interface. At this point, what we need
+00:16:05 to do is access the DXGI device. So, let's go to the render system heater
+00:16:11 file and add a com pointer to the DXGI device.
+00:16:25 Next, we need to create a swoop chain. To do this, we must obtain the DXGI
+00:16:31 factory, which as the name suggests, allows us to create various DXGI related
+00:16:37 resources, including swap chains. The actual hierarchy looks like
+00:16:42 the one on the screen.
+00:17:47 So after calling query interface on D3D11 device, we now have access to the
+00:17:54 entry point of the XGI the DXGI device. From here we need to call the get parent
+00:18:01 method to obtain the XGI adapter which represents the GPU selected during the
+00:18:08 3D11 create device. In this case, the primary GPU.
+00:18:38 Then we call get parent again on the adapter to get the DXGI factory.
+00:19:00 As we can see, the factory gives us full control to create any swoop chains we
+00:19:07 need. All right. Now, we can dive into the creation of the swoop chain
+00:19:22 class. Let's remember to place all our graphics resources inside the source
+00:19:28 branch of the project. As usual, let's wrap our class in the DX3D name space. We will also inherit
+00:19:37 from the base class and mark our class as final.
+00:20:02 Now we can implement the constructor. In this case, we don't need to define a
+00:20:08 destructor manually. Inside the constructor, we can finally call the create swap chain
+00:20:15 method. Always remember that we are following the RA ai. So initialization logic should go
+00:20:22 inside the constructor and any necessary cleanup should be placed in the
+00:20:28 destructor. Cool. What's next? Of course, we need to access the DXGI
+00:20:33 factory somehow and we should get it from the render system. The idea is to
+00:20:39 always adopt the dependency injection design pattern and in particular
+00:20:44 constructor injection to pass dependencies across the various parts of our engine in a clean and scalable way.
+00:20:52 In this case, we can create another base class for graphics resources which we
+00:20:57 will simply call graphics resource. This class will provide core D3D components
+00:21:05 like D3D device and the DXGI factory to all render system related resources such
+00:21:12 as the swoop chain and many other resources we will implement throughout the series. So let's start by creating
+00:21:20 the graphics resource heater file. As usual, let's wrap everything inside the
+00:21:26 DX3D name space. At this point, we can define the graphics resource class and make it
+00:21:32 inherit from the base
+00:21:47 class. Let's also implement its constructor.
+00:22:07 With that done, we can add some protected attributes. In other words, attributes that can only be accessed by
+00:22:15 derived classes but not externally. In particular, let's add a non-null
+00:22:21 reference to the D3D11 device. Let's also include the D3D11 hero file to get
+00:22:28 all the D3D11 API definitions. Next, let's add a non null
+00:22:34 reference to the DXGI factory.
+00:22:41 All right, with this we now have the foundational direct 3D11 components
+00:22:47 needed to create all other render system resources. Now we need to initialize the
+00:22:53 various attributes using the member initializer list. Let's start by calling
+00:22:59 the base class constructor. Then proceed with initializing the D3D device and the
+00:23:05 XGI factory references. To pass these dependencies into the
+00:23:10 graphics resource, let's follow the dependency aggregation strategy and create a graphics resource descriptor
+00:23:18 structure. As first thing, let's add a base descriptor as the base of the
+00:23:23 structure. Then we will add non references to the D3D11 device and the
+00:23:30 XGI factory.
+00:23:38 Once that's ready, we can define the graphics resource descriptor as a con
+00:23:44 reference parameter in the graphics resource
+00:23:50 constructor. Finally, we can complete the member initializer list and mark the constructor as explicit.
+00:24:10 All right, we are now ready to go to the swap chain heater file and make swap chain inherit from the graphics resource
+00:24:30 class. Of course, we also need to add the graphics resource descriptor as a
+00:24:35 non-null custom parameter to the swap chain constructor.
+00:24:46 Now we are ready to implement the initialization of the swap chain. Let's
+00:24:52 call the graphics resource constructor in the member initializer list. At this
+00:24:58 point, we can finally use the DXGI factory reference and call the create
+00:25:03 swoop chain method.
+00:25:14 As with many other direct X functions, we need to pass several parameters. The first one is the device
+00:25:22 which is of type I unknown. It's defined this way because the function can accept
+00:25:28 multiple types of devices, not just the 3D11 device, but also others.
+00:25:35 Let's go ahead and pass our D3D11 device reference. The second parameter is the
+00:25:42 address of a swoop chain descriptor. So let's create
+00:25:58 it. As usual, let's initialize it using curly braces.
+00:26:04 Now we need to set a series of values. First we should define the
+00:26:09 attributes of the back buffers used internally by the swap chain. Essentially the canvas where the
+00:26:16 graphics will be rendered. It's like the surface an artist draws on. For this
+00:26:22 canvas, we need to set the width which should match the
+00:26:27 width of the client area of our window. To retrieve this value, let's adopt the
+00:26:34 dependency aggregation strategy again. So let's go to the common heater
+00:26:40 file and start creating the swap chain
+00:26:50 descript of the client area to the swap chain. We should create a suitable class
+00:26:56 called rect which stands for rectangle. Let's create a module called math where
+00:27:03 we replace all math related classes inside it. We can start by creating the
+00:27:10 rect file. Once that's done, as usual, let's
+00:27:15 add the DX3D name
+00:27:22 space. Now we can start defining the rect glass. This class should be quite
+00:27:28 simple. First, let's define a default constructor. A default constructor is a
+00:27:35 parameterless constructor with an empty body. However, for clarity, we can use
+00:27:42 the equal default keyword to explicitly mark it as a default constructor. At this point, we can
+00:27:49 define its attributes. Before going further, let's go to the core heater
+00:27:55 file and simplify some basic types.
+00:28:00 By using the using keyword, we can create type aliases. For instance, E32
+00:28:08 to represent a 32bit integer. Here 32 means 32 bits since an integer is
+00:28:15 typically four bytes that are 32
+00:28:22 bits. Of course, we can do the same for other
+00:28:29 types like float, double and
+00:28:44 more. All right. Now, let's define direct attributes. Since we want to
+00:28:50 represent attributes like left, top, width, and height in pixel coordinates,
+00:28:55 the most suitable type to use is integer. As always, let's use curly
+00:29:01 braces to initialize them.
+00:29:18 What's next? We can define some alert constructors to easily create our rack
+00:29:23 instances. For example, we can define a constructor that only takes width and
+00:29:29 height the 14 left and top to zero.
+00:29:50 Then we can define another constructor that allows us to set all four attributes.
+00:30:08 So far so good. We are now ready to complete the swap chain descriptor. The first attribute we need
+00:30:15 to define is the endle to our window. Then we will define the size of the
+00:30:21 window using our rect glass. Don't forget to include the rect eater file.
+00:30:45 Next, let's add this new descriptor as the first parameter of the swoop chain
+00:30:54 constructor. Of course, let's rename the existing second parameter to avoid any
+00:31:01 confusion. With that completed, we now have access to all the values we need to
+00:31:06 create our swap chain.
+00:31:23 Let's proceed by passing the width of our window. Pay attention here. Create
+00:31:29 swoop chain will fail if we pass zero negative values for the width or the
+00:31:35 height. To avoid this, let's use the standard max function. There is a catch
+00:31:41 though. Due to the inclusion of Derry 3D11 and Windows eaters, a max macro
+00:31:48 might already be defined which conflicts with the standard max function. To fix
+00:31:54 this, let's go to the project properties. Navigate to the C++ list and
+00:32:01 then go to the preprocessor section. Edit the prep-processor definition field
+00:32:07 and add the no minmax at the end of the list. This will disable the max macro allowing
+00:32:15 us to safely use the standard max function. Now we can set the width as
+00:32:22 the maximum between one and rect width. Let's do the same for the height.
+00:32:57 We are now ready to set the color format of the canvas. Let's use this one. Here we are
+00:33:05 defining a render buffer where each pixel has four color channels. red,
+00:33:11 green, blue and alpha used for transparency or opacity
+00:33:17 control. Unorm means we are working with normalized unsigned integers. Each
+00:33:23 channel is eight bits and these values are normalized to a 01 range in the
+00:33:30 shader. These will be extremely important later in the series when we will introduce and use
+00:33:38 shaders. At this point, we need to define the buffer count. In other words,
+00:33:44 how many back buffers in the case of window withid mode will be used before presenting to the screen. If we set our
+00:33:52 swap chain to run window withid mode, the buffer count defines only the number
+00:33:58 of back buffers. No front buffer is included here because the front buffer
+00:34:04 is represented by the desktop and is handled by Windows through the so-called
+00:34:10 desktop window manager or DWM. If we set our swap chain to run in
+00:34:16 full screen mode instead, the buffer count also includes the front buffer. Let's set the buffer count to
+00:34:24 two. We will dive deeper into the reason for this in just a
+00:34:29 moment. This will also result in triple buffering as we already discussed in the
+00:34:37 introduction. What's next? We need to set the buffer usage attribute. This
+00:34:43 test the XGI how we will use the swap chains buffers. Let's use usage render target
+00:34:50 output. This test the XGI that we will be using the buffer as a render
+00:34:58 target. We will deepen much better the render target topic in the next
+00:35:05 tutorials. All right. Now we can finally set the output window which needs the
+00:35:11 HWD of our window. Let's use static cast keyword to
+00:35:17 safely cast from void pointer. Next, we need to set the sample counter for
+00:35:22 multisample anti-alysis. For now, we don't need it, so we can just set it to one. Now, we
+00:35:30 have to set the swap effect. Let's use the swap effect to flip this card. Flip
+00:35:37 this card is a modern swap effect where in window mode, the back buffer is not
+00:35:43 copied to a separate surface. Instead, it is flipped or swapped and directly
+00:35:50 ended off to the desktop window manager or DWM for composition and
+00:35:57 presentation. These can be done because the back buffers created in the swap
+00:36:02 chain are shared with the DWM allowing the system to display the content
+00:36:08 directly without needing to copy it, which leads to better performance and
+00:36:13 reduced latency. Last but not least, let's set the window with attribute to
+00:36:18 true so we can run in window withid mode. We will dive deeper into full
+00:36:24 screen mode later in the series. So far so good. We can now finally pass the
+00:36:30 address of this descriptor to the create swoop chain method. At this point, let's
+00:36:36 finally retrieve the output parameter which is the DXGI swoop chain. As usual,
+00:36:43 let's add a compointer attribute to the swoop chain class and call it swap
+00:36:49 chain.
+00:37:20 We will use this to store the reference to the swoop chain
+00:37:46 instance here. Let's always remember to use our DX3D log error and throw macro
+00:37:53 so we can properly log an error and throw an exception whenever a direct 3D API call fails.
+00:38:18 All right, let's dive into the next step. Now we need to create the swoop
+00:38:23 chain somewhere and that's going to be done from the render system. Let's add a
+00:38:30 create swoop chain method and pass the swoop chain descriptor as parameter.
+00:38:38 At this point, we need to define its return type. Since in general, all resources
+00:38:45 generated by the render system can be shared across multiple components. And
+00:38:50 since each resource could potentially have multiple owners, we should start using the shared
+00:38:57 pointer. Let's go to the core file. Shade pointer is a smart pointer that
+00:39:04 manages the lifetime of a dynamically allocated object using reference counting. Unlike unique pointer which
+00:39:11 deletes the object as soon as it goes out of scope, shared pointer keeps track
+00:39:17 of how many pointers point to the same object. The object is only deleted when
+00:39:23 the last shared pointer is destroyed or reset. An important note here, we are
+00:39:30 defining a new type swap chain pointer. So we don't have to write out the full
+00:39:35 definition every time we want to use a swap chain. We will do this for all the
+00:39:41 render system resources. Since we will be using these graphics resources a lot in our DX3D
+00:39:48 engine, this is super helpful.
+00:39:53 Let's finally use a swap chain pointer as the return type of the create swoop chain method. Now we can go ahead and
+00:40:01 implement
+00:40:08 it. Here we might get some errors due to a missing the X3D name space prefix in
+00:40:15 the return type. To avoid having to write the X3D all the time, we can use
+00:40:21 the using name space directive. Pay attention though, it's
+00:40:27 not always recommended to use using namespace, especially in heer files
+00:40:33 because it can cause name collisions just like we saw earlier with the max
+00:40:38 macro and the standard max function. So if you want to use using name space
+00:40:45 do it only inside C++ files and only when really
+00:40:51 necessary. All right. Now we can finally instantiate our swap chain by using the
+00:40:56 make shared function. Of course don't forget to include the swap chain heater
+00:41:06 file. At this point, we need to pass the graphics resource descriptor since this descriptor
+00:41:13 provides all the key direct 3D11 resources available in the render system. And since these main resources
+00:41:21 will be passed to the swap chain and many other future resources, let's create an important private method
+00:41:28 called get graphics resource descriptor. This would be a convenient method that
+00:41:34 gives us the descriptor in a clean and compact
+00:41:53 way. Let's always use brace initialization. As the first attribute, we need to pass
+00:42:00 the logger. Then we need to pass a non reference to the D3D11 device. To do
+00:42:07 this, first call the get method to obtain the row pointer. Then dreference
+00:42:13 it using the star operator to get the reference. Important note here, the
+00:42:19 logger we are passing is part of the base descriptor structure. So we will
+00:42:24 need to add an additional brace initialization block inside the graphics resource descriptor
+00:42:31 braces. This is a compact way to initialize our descriptor. If preferred
+00:42:37 we could define each field one by one using temporary variables, but for now
+00:42:42 let's go ahead with this approach. Lastly, let's pass the non reference to
+00:42:47 the DXGI factory using the same method as we did for the D3D device.
+00:43:01 And that's it. Now we just need to call the get graphics res the scriptor method
+00:43:06 inside the make shared function. With that completed, we can finally start
+00:43:11 creating the display class inside the game module.
+00:43:38 As usual, let's include our class inside the DX3D name space. This class should
+00:43:44 inherit from the window class and we should mark it as final.
+00:43:50 We can define this class as the actual game window, the place where we render
+00:43:56 all our 3D
+00:44:05 graphics. To do that, we need to define the constructor, but most importantly,
+00:44:10 we need to define the swap chain attribute, which is the core component that allows rendering in our window.
+00:44:40 All right, let's implement the display constructor.
+00:44:56 Obviously, we need to pass a window descriptor to the base window constructor. So, let's go to the comm
+00:45:04 file and finally create the display descriptor
+00:45:16 structure. As the first attribute, we should define the window descriptor. We should also add an extra
+00:45:24 attribute inside the window descriptor, which is the size of our
+00:45:38 window. Next, we need to define the size attribute inside the window class as well.
+00:45:49 At this point, let's go to the Win32 Windows C++ file and initialize the size
+00:45:56 in the member initializer list, passing the width and values to the RC variable.
+00:46:20 Last but not least, let's go back to the common hero file and define the final
+00:46:25 attribute of the display descriptor which is a non null reference to the render
+00:46:31 system. This will allow us to create the swap chain from the display. We are now
+00:46:37 ready to use the display descriptor in the display constructor. And as usual,
+00:46:43 let's mark the constructor as
+00:47:02 explicit. At this point, we can finally provide the window descriptor to the base class constructor and then create
+00:47:09 the swap J.
+00:47:43 Here we need to pass the handle of our window. So let's go back to the window
+00:47:49 heater file and make the attributes protected so they are accessible from
+00:47:55 the display class. Then we can also pass the size of the client area of the
+00:48:07 window. What we need to do now is go to the game heater file and replace the
+00:48:12 window pointer with a display pointer. Let's remember to make a
+00:48:18 forward declaration of the display class in the core heater file.
+00:49:00 So far so good. Now we have to create a display instance instead of a window
+00:49:06 instance. Since we now also need to pass the size of the window and finally a
+00:49:11 non-null reference to the render system, let's go to the graphics hero file and
+00:49:17 add a get render system method to retrieve that reference.
+00:49:46 Since this method doesn't alter the state of the class and shouldn't throw
+00:49:52 exceptions, let's mark it as constant and no except in the implementation. Let's
+00:50:00 return the render system. When using the star operator on a unique pointer, it dreference the
+00:50:08 internal row pointer giving us a non null reference. Last but not least, let's
+00:50:15 return to the game C++ file and retrieve the render
+00:50:20 system. As we can see in the game constructor, each component like graphics engine, display, etc. clearly
+00:50:28 and explicitly exposes its dependencies. This is a direct result of
+00:50:35 using the dependency injection pattern. We are trying to avoid hiding
+00:50:40 dependencies inside other objects. For example, if we pass the graphics engine
+00:50:46 to the display instead of the render system, we will be adding the actual
+00:50:51 dependency, the render system, which is what the display really needs. All
+00:50:57 right, there is nothing left but to debug our program.
+00:51:14 As expected, we have reached the swap chain constructor. The create swap chain
+00:51:19 method has been successfully executed. And in the end, our window is shown as
+00:51:38 usual. As the very last step, we should pass the window size from the game
+00:51:43 constructor. So, let's go to the common hero file and add a rect attribute to
+00:51:50 the game descript with a default value.
+00:52:02 Then let's go back to the game C++ file and pass it into the display
+00:52:14 constructor. Finally, let's go to the main C++ file and pass a custom size for
+00:52:21 the game window.
+00:52:45 What we need to do now is go to the render system C++ file and fix the
+00:52:51 create swap chain method by adding the const keyword at the end of the
+00:52:56 method. This explicitly declares the method as constant since it doesn't
+00:53:02 alter the state of the render system. We will do the same for the get graphics
+00:53:07 versus descriptor
+00:53:23 method. Now we are going to take care of an important topic. Let's create a scope
+00:53:29 by adding two curly braces. Inside this scope, let's add a swap chain pointer.
+00:53:35 Let's remember this is a shared pointer to a swoop chain instance. At this
+00:53:41 point, let's add a further nested scope inside the one we just added. Inside it,
+00:53:48 let's create a render system.
+00:53:59 Once we have a render system, let's use it to create a swap chain and let's
+00:54:04 retrieve its pointer. Since we are not passing valid parameters, the swap chain
+00:54:10 will not be created and an exception would be thrown. To avoid this, let's go
+00:54:16 to the swap chain C++ file and comment out the create swap chain method. What
+00:54:22 happens in this case? We initialize our render system and create the swoop
+00:54:27 chain. But the render system goes out of scope and is deallocated before the swap
+00:54:34 chain even though the swap chain depends on it. In particular, the swap chain
+00:54:39 depends on the 3D11 device and the XGI factory which are both managed by the
+00:54:45 render system. So currently we are free to use the swap chain even though the
+00:54:50 render system is no longer alive. These must absolutely be
+00:54:55 avoided to ensure the swoop chain or any resource created by the render system
+00:55:02 doesn't outline the render system itself. We need to store a shared pointer to the render system in each
+00:55:08 resource. We can do this by adding a shared pointer in the graphics resource
+00:55:14 class. Let's start by extending render system from enable shared from this.
+00:55:21 This important class allows us to create a shared pointer from the this pointer.
+00:55:27 We will understand better how this works in a moment. For now, let's go to the
+00:55:32 graphics resource heater file and add a shared pointer to a constant reference of render system in both the graphics
+00:55:40 resource descriptor and the graphics resource class. We use const here to
+00:55:45 make sure the render system cannot be modified inside its resources.
+00:56:10 At this point, let's initialize the render system pointer using the member initializer list.
+00:56:24 Now we are ready to go to the render system C++ file and pass the shared pointer to the render system from the
+00:56:30 graphics resource the script. Unfortunately it is not valid to create
+00:56:36 a shared pointer by directly passing the this pointer. To solve this issue we can
+00:56:42 use a method provided by enable share from this called shared from this. With
+00:56:48 that completed, let's go to the graphics engineer file. We don't need to do much.
+00:56:55 Just change the unique pointer to a shared pointer. It's really important to make it shared otherwise undefined
+00:57:02 behavior could happen due to the usage of enable share from this. Of course, in
+00:57:08 the graphics engine C++ file, we also have to use the make shared function.
+00:57:16 At this point we can start debugging our program. We will finally see that even
+00:57:21 if the scope in which the render system was created has ended, the render system
+00:57:27 is deallocated only after the swoop chain thanks to the reference counting
+00:57:32 system provided by the shared pointer.
+00:57:42 In conclusion, let's remove the temporary code snippet and uncomment the create swap chain method in swap chain
+00:57:49 C++ file.
+00:58:10 That's all for now folks. Today we learned how to create and initialize the
+00:58:15 swap chain class. We saw how to inject the necessary resources like the 3D
+00:58:21 device and the XGI factory which are needed to create the swap chain by
+00:58:27 creating the graphics resource descriptor and graphics resource class. We also explored how to create useful
+00:58:34 log macros along with the display class which allows us to combine the window
+00:58:39 and the swap chain together. And in the end, we turned our render system into a
+00:58:44 simple factory class that cannot be destroyed before its resources are properly
+00:58:50 deallocated. In the next episode, we will dive into the creation of the device context, which we will finally
+00:58:57 allow us to start rendering on the screen. I hope you enjoyed this video.
+00:59:03 See you soon. Thanks for watching.
+00:59:10 [Music]

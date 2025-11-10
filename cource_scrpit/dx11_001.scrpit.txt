@@ -1,0 +1,369 @@
+00:00:00 [Music] Hello everyone and welcome back to the
+00:00:06 C++ 3D game tutorial series. In this second episode, we will
+00:00:13 see how to create the 3D graphics engine which will allow us to render 3D
+00:00:19 graphics on our window using the DirectX11 graphics
+00:00:24 API. As always, we will face three main parts. the requirements, design and
+00:00:31 implementation of the software components required to create the graphics
+00:00:37 engine. Let's start with the requirements. We need a C++ IDE. In this
+00:00:44 series, we will use Visual Studio 2022 community. The target platform is
+00:00:50 Windows. The target graphics API is DirectX11. And last but not least, a
+00:00:58 good understanding of the C++ programming language is recommended. Now we can start the design
+00:01:06 part. In the previous episode, we started creating a minimalist game
+00:01:11 engine called DX3D. A minimalist game engine is a
+00:01:17 compact framework designed to provide the core features needed to create a
+00:01:22 game. These engines are typically coddriven,
+00:01:27 giving developers direct access to the inner components of their projects and
+00:01:33 encouraging a deeper understanding of game development. Last time we created the
+00:01:39 window using the WIM32 API and introduced the entry point module of our
+00:01:45 game engine, the game class along with the main game loop.
+00:01:50 This time we will focus on developing the graphics engine. A graphics engine
+00:01:56 can be defined as a software component of a game engine responsible for
+00:02:01 rendering 2D and or 3D graphics on the screen. In software engineering, a
+00:02:08 component is a self-contained part of a system with a specific responsibility. Think of it as a
+00:02:15 building block in a larger system. In this case, the DX3D engine. At this
+00:02:22 point, a question comes spontaneously. How can we allow our graphics engine to
+00:02:28 render 2D or 3D graphics on the screen? Through the usage of graphics
+00:02:35 API. A graphics API is a set of functions, classes, and protocols that
+00:02:41 allows a software to communicate with the GPU to render images, 3D models, and
+00:02:47 animations on the screen. It provides developers with the functions needed to
+00:02:53 draw objects, manage textures, and shaders, and handle resources required
+00:02:58 for visual rendering. In particular, in this tutorial series, we will use the
+00:03:04 DirectX11 graphics API. In order to have a clean and
+00:03:10 modular architecture, we should manage all the graphics API related functionalities inside a suitable
+00:03:16 software component within our graphics engine. We will call this component the
+00:03:23 render system. A software component can be also defined as module or subsystem
+00:03:30 depending on the context. A module is a smaller code unit like a file or class.
+00:03:36 A subsystem instead is a larger part made up of multiple components working
+00:03:42 together. For this reason, since our graphics engine is now made up of at least one
+00:03:50 software component with a specific responsibility, we can also define it as
+00:03:55 a subsystem. To sum up, the DX3D game engine is a software system composed of
+00:04:03 several key parts. At its core is the game, the entry point component of the
+00:04:09 engine which manages and coordinates the various subsystems. The window module is
+00:04:16 responsible for creating and managing the game window. The graphics engine serves as a
+00:04:24 subsystem that provides the rendering layer for the game engine. Within it,
+00:04:30 the render system acts as a component responsible for managing the initialization resources of the graphics
+00:04:37 API. In our case, Direct 3D 11. All right, let's dive into the next topic.
+00:04:45 In this episode, we will also introduce another important module within our TX3D
+00:04:51 engine, the logger that provides a centralized way to print or output
+00:04:58 information, warnings, and errors in a consistent format in the console
+00:05:04 window. It's an essential tool for debugging and monitoring the behavior of
+00:05:09 our engine. It will be designed to support multiple verbosity levels,
+00:05:15 helping us control how much information we want to see at runtime. To tie the logger and other
+00:05:22 software components or modules together in a clean and maintainable way, we will
+00:05:28 apply the dependency injection pattern. Instead of relying on global
+00:05:33 singletons or tightly coupled dependencies, we will inject the shared services like the logger into each class
+00:05:41 that needs them. This approach makes the relationships between systems explicit
+00:05:47 and transparent, helping us avoid hidden dependencies. In practice, we will use
+00:05:54 constructor injection where we will inject dependencies through the parameters of a constructor. To keep our
+00:06:01 classes clean and avoid bloated constructors filled with redundant parameters, we will group them into
+00:06:08 simple descriptor structures and pass them through the constructors. This strategy is called
+00:06:16 dependency aggregation. By following these principles and structuring our engine
+00:06:23 around clear modular boundaries, we will build a system that is both robust and
+00:06:30 flexible. If you have any questions, doubts or comments about this topic,
+00:06:36 feel free to leave them in the comment section of this video or on our Discord
+00:06:41 server. You can find the link to the Discord server in the video description.
+00:06:46 Also, if you find these tutorials helpful, please consider supporting the development on Patreon. Every
+00:06:53 contribution makes the difference, no matter the amount. Great, we have gathered all the
+00:06:59 necessary information to start the implementation. Let's start by
+00:07:06 introducing an important topic, the so-called rule of five.
+00:07:12 To better understand this concept, let's head over the game constructor. Here we
+00:07:17 are completely free to create a window object called win and we can make a copy
+00:07:23 of it called W. What happens in this case? We create
+00:07:29 what's known as a shallow copy of the window object. A shallow copy in C++
+00:07:35 means that only the top level structure is duplicated but not the dynamically
+00:07:40 allocated memory handles and so on. In other words, both the original and the
+00:07:46 copy share the same underlying resources. For example, in this case, we
+00:07:52 copy the win32 window handle from the win object into the W object.
+00:07:59 So we end up with two window objects that share the same underlying
+00:08:05 window. This is something we want to avoid both for the window object and in
+00:08:10 general for all future components in our engine. To solve this issue, we can
+00:08:16 apply the so-called rule of five to the base class. But what exactly is the rule
+00:08:23 of five? It consists of implementing five specific methods in a class. The
+00:08:29 destructor, the copy constructor, the move constructor, the copy assignment
+00:08:34 operator, and the move assignment operator. In general, if our class
+00:08:40 manage resources manually, for example, the win32 handle in the window class and
+00:08:46 we need to implement at least one of these methods, then we should implement
+00:08:51 all five. In our case, we had already implemented the destructor. So, we
+00:08:57 should have implemented the other four as well. By adding equal delete to the
+00:09:03 copy and move methods, we prevent this class and all its the right classes from
+00:09:08 being copied or moved in any way. In general, the resources in our engine
+00:09:14 will manage dynamically allocated memory and handles. So it makes sense to share
+00:09:19 this behavior across all the classes in our engine. Now if we try to debug our code,
+00:09:26 compilation fails because we are trying to copy a window object which is now
+00:09:33 forbidden. So far so good. Let's go ahead and finally start creating our graphics module.
+00:09:50 With that completed, we can create the graphics engine
+00:10:02 class. To make file moving smoother, we can check the option never prompt before
+00:10:08 moving files to a new location.
+00:10:14 As usual, let's add our graphics engine class inside the DX3D name
+00:10:26 space. Don't forget to inherit from the base class.
+00:10:41 An important note here we are using the final keyword for the class. By doing
+00:10:47 this we are preventing the graphics engine from being further derived by other classes. For now we don't want
+00:10:54 users of our DX3D engine to extend the graphics engine class. Let's go ahead and implement the
+00:11:02 constructor and destructor as usual.
+00:11:34 Cool. We are now ready to implement the render system class. Important note,
+00:11:40 from now on all the render system related resource files, both the heater and C++ files will be included in the
+00:11:48 SUS branch. This is to avoid exposing the direct 3D graphics API definitions
+00:11:54 in the public API of our DX3D
+00:11:59 engine. Again, let's include our class inside the DX3D name space. Inherit from
+00:12:06 the base class and mark the class as final.
+00:12:25 With that done, we can implement the constructor and destructor.
+00:13:05 We are now ready to integrate the DirectX11 graphics
+00:13:10 API. First, let's go to the project properties. Then, we can open the link
+00:13:16 list and access the input tab. At this point, let's search for the additional
+00:13:22 dependencies field and edit it. What we need to do now is add the direct
+00:13:29 3D11 library called D3D11.lib. Once that's done, we can save
+00:13:37 all the changes. Now we are going to take care of the render system. Here we need to
+00:13:44 include the D3D11 heater file which provides all the class and function
+00:13:49 definitions of direct 3D1.
+00:13:59 We are now ready to call the first and most important function of our render system. The 3D11 create
+00:14:07 device. As the name suggests, this function allows us to create the direct
+00:14:12 3D11 device for which we will be able to create all the graphics resources we
+00:14:17 need to render to our window. we need to pass a few specific
+00:14:23 parameters. The first one is the so-called DXGI adapter. Axgi adapter
+00:14:30 typically represents a graphics card GPU installed on the system, although it can
+00:14:36 also represent other types of adapters which we won't cover in this series. In
+00:14:43 our case, if we pass null as the first parameter and D3D driver type hardware
+00:14:49 as the second, the 3D will pick the primary
+00:14:56 GPU. The next parameter expects a handle to a DLL that implements a custom
+00:15:03 software reststerizer. Since we are not using one, we can just pass null. At this point, we need to pass
+00:15:11 some flag values. Let's create an assigned integer variable called create
+00:15:16 device flags. Here we can combine multiple flags using the bitwise or
+00:15:22 operator, the pipe character. In this case, we only want to add the flag that
+00:15:28 enables the direct 3D debug layer, which helps us get error and warning messages
+00:15:34 during runtime.
+00:16:03 What's next? The function requires a pointer to an array of feature level. By
+00:16:09 passing null, D3 3D will simply pick the best feature level supported by the
+00:16:14 system. For now, this behavior is good enough for us. The next parameter is the size of
+00:16:22 the previous array. Since we passed null, we can safely pass zero
+00:16:27 here. Now that we have handled those, we need to pass the SDK version
+00:16:33 parameter. This is basically a safety check used by Microsoft to prevent
+00:16:39 version mismatches and ensure our program links with the correct direct 3D
+00:16:45 runtime. With that done, we move on to the output parameters. The first one is
+00:16:51 the most important, the direct 3D device. It represents the virtual GPU
+00:16:57 and is used to create a manage all the GPU related resources like textures,
+00:17:03 shaders, buffers, and so on. We will explore these in more detail later in
+00:17:09 the series. For now, let's retrieve and store the row pointer to the device in a
+00:17:15 suitable attribute. Let's add it to the render system class and call it the 3D
+00:17:22 device. Another important note here, just like we did previously with the
+00:17:28 window instance, we should use smart pointers. Unlike the window class,
+00:17:34 however, we can choose a standard C++ smart pointers like unique pointer. The
+00:17:40 3D resources like the 3D device are COM objects which use reference counting for
+00:17:47 memory management. Reference counting is a technique where each object keeps track
+00:17:54 of how many references or owners point to it. When a new reference is created,
+00:18:01 the count goes up. When a reference is released, the count goes down. When the
+00:18:07 count reaches zero, the object is automatically destroyed. For this type
+00:18:14 of object, we need to use com pointer, a smart pointer provided by the Windows
+00:18:20 runtime C++ template library, which we can access by including the WRL heater
+00:18:27 file. To pass the com pointer to the function, we can use the end operator.
+00:18:33 This gives us a double pointer which is what the function
+00:18:42 expects. The next output parameter is the feature level chosen internally by
+00:18:47 the function. Let's create a variable to retrieve and store it.
+00:19:02 Last but not least, we need to retrieve the so-called device context. We will
+00:19:08 explore this resource in future tutorials, but for now, let's get it the
+00:19:14 same way we did with the device.
+00:19:46 We have finally finished calling the D3D11 create device function. At this point, we need to
+00:19:53 check the return value so we can throw an exception if something goes wrong. In
+00:19:59 this case, we can use a handy macro called failed.
+00:20:04 Let's also include the core heater file to use the runtime error exception.
+00:20:39 All right, we have successfully initialized direct 3D1. With that completed, we can finally
+00:20:46 go to the graphics engine class and instantiate our render system. As usual,
+00:20:52 let's use unique
+00:21:12 pointer. Since we need the definition of the render system class, let's add a
+00:21:17 forward declaration in the core heater file.
+00:21:45 At this point, we can instantiate our render system by calling make unique and
+00:21:50 we can safely include the render system heater file in the C++ file without
+00:21:55 worrying about circular dependency issues.
+00:22:12 what we need to do now is instantiate the graphics engine inside the game
+00:22:18 class. Let's continue using unique pointer make unique to manage and instantiate the class. Pay attention
+00:22:26 here. The order in which we define the attributes is extremely important,
+00:22:31 especially when using smart pointers. In this case, when the game instance is
+00:22:37 deallocated, the first unique pointer that goes out of scope and gets deallocated is the window pointer
+00:22:44 followed by the graphics engine. In other words, the last defined attribute
+00:22:49 is the first to be deallocated and the first defined attribute is the last to
+00:22:55 be deallocated.
+00:23:44 All right, let's dive into the debugging session. It seems to work. We have
+00:23:50 reached the render system constructor and the create device function seems to have been executed successfully.
+00:24:08 So what do we need to do now? We should double check that all the direct 3D resources have been properly released. A
+00:24:17 simple and immediate approach is to check the output window. If a series of DLL libraries
+00:24:25 related to a specific GPU driver, in this case the Nvidia driver have been
+00:24:30 unloaded, that could potentially indicate that all the Direct 3D resources have been completely and
+00:24:37 successfully released. Of course, there are other more sophisticated ways to check this,
+00:24:44 but we will explore those in the upcoming tutorials. Now, we are going to
+00:24:49 take care of the logger. So let's create the logger class and place it inside the
+00:24:55 core module.
+00:25:18 As always, let's include it in the DX3D name space. Since we don't want users to
+00:25:25 extend it further, let's mark the class as final. At this point, we can add the
+00:25:31 constructor. We don't need to add a destructor since we don't have to handle any special
+00:25:38 attributes. By doing it this way, we are following the rule of zero, which states
+00:25:44 that we should not write any of the special member functions. So destructor
+00:25:49 copy move constructor or copy move assignment operator unless we absolutely
+00:25:55 need to. All right, let's create an enumeration called log level. An
+00:26:02 enumeration in C++ is a userdefined type that consists of a set of named integral
+00:26:09 constants. It's used to give meaningful names to sets of related values,
+00:26:15 typically integers, making our code more readable and safer. Also, by using the class keyword,
+00:26:23 we get a type save scoped and more modern and new. In particular, we want to create
+00:26:30 three log levels, information, warning, and error. Let's define a log level
+00:26:36 parameter in the logger constructor. And let's also assign it a default value,
+00:26:42 the error level. Here we can add the explicit keyword to the logger constructor. We
+00:26:49 should use explicit for single argument constructors to prevent unintended
+00:26:54 implicit conversions. So far so good. Let's
+00:27:00 implement the constructor.
+00:27:09 With that completed, we can add a log level attribute to our logger
+00:27:33 class. and initialize it using the member initializer
+00:27:40 list. What's next? At this point, we can add the most important method of the logger, the log
+00:27:47 method. This method should accept the log level of the message and the message
+00:27:52 itself as parameters.
+00:27:59 Let's also declare the log method as constant by adding the const keyword at
+00:28:04 the end of the function signature. This tells the compiler that
+00:28:10 the function doesn't alter the state of the class. For example, by modifying any
+00:28:16 attributes. So we are ensuring that calling this function leaves the class
+00:28:22 unchanged. We can now go ahead and implement
+00:28:33 it. First, the log function should behave as follows. If we set the level
+00:28:39 to error, we should print only error messages. If we set it to warning, we
+00:28:46 should get both warning and error messages. If we set it to information
+00:28:52 instead, we should get all types of messages. We can implement this logic
+00:28:58 using this simple condition. To print a message to the console, we will use an important object
+00:29:05 called clog which is a standard C++ output stream. We can use it by
+00:29:12 including the iOS stream heater file. What's next? We need to print some
+00:29:18 additional information alongside the message, specifically the log level. To
+00:29:24 do this, let's create a lambda function called log level to string which takes a
+00:29:30 log level and returns the corresponding string.
+00:29:58 We can implement it using a simple switch statement by default. We return
+00:30:04 unknown. In the other cases we return the aggregate strings. So, info warning
+00:30:10 and error.
+00:30:47 All right. Now we just need to print the log level string and the message.
+00:31:05 Let's also remember to add a new line escape sequence to move the output to
+00:31:11 the next line. With that completed, let's go to the game class. What we need to do now
+00:31:19 is create a unique pointer to the logger. Since it's currently the most foundational component of our engine,
+00:31:26 let's define it at the very beginning. So, it will be the last to be released or
+00:31:32 deallocated. As usual, let's add a forward declaration of the class in the core hedo
+00:31:45 file. Now we can create the logger instance and again let's remember the
+00:31:51 attribute order. Let's create the logger as the first attribute.
+00:32:22 With everything in place, we can finally call the log method and print an information message that tells us the
+00:32:29 game has been initialized.
+00:32:50 Let's do the same thing in the destructor, printing a message that the game is shutting down.
+00:33:13 Don't forget to pass the log level as a parameter in the logger constructor. We
+00:33:18 want to see all messages including information once. We are now ready to debug our
+00:33:25 program. As we can see on the screen, the console prints the information
+00:33:30 messages we defined earlier. This will be extremely useful in the next
+00:33:35 tutorials when we need to print debugging information like runtime values and so
+00:33:41 on. As a final step, let's also print the name or title of our program.
+00:34:27 All right, let's dive into the next step. At this point, we want to provide
+00:34:33 access to the logger in all the classes of our DX3D engine so that we can easily
+00:34:39 print log messages wherever needed. Of course, there are several ways to
+00:34:44 achieve this. One option is to use the singleton design pattern for our logger.
+00:34:50 A singleton is a class that allows only one instance of itself and provides
+00:34:56 global access to that instance. This kind of class could be useful. However,
+00:35:02 there are some important issues to consider. Any class can access it from anywhere. So, it becomes hard to track
+00:35:10 dependencies. Code becomes tightly coupled to the singleton and replacing it later or using it in other contexts
+00:35:19 becomes difficult. There are a few cases like the logger
+00:35:24 where singletons might be considered acceptable but in general it's better to
+00:35:29 avoid them. So how can we provide access to the logger across all classes of our
+00:35:37 engine? By using a design pattern called dependency injection.
+00:35:43 Dependency injection is a design pattern where you pass or inject an object's
+00:35:48 dependencies from the outside. In particular, we will adopt constructor injection, a form of
+00:35:56 dependency injection where we provide a classes dependencies through its
+00:36:02 constructor. Let's proceed with this approach. First, let's go to the base class and
+00:36:09 add a non-null reference to the logger using the end character. By defining a non-null
+00:36:16 reference, we are enforcing the presence of the logger. This way, we can be
+00:36:22 absolutely sure that a logger is always available for all the classes in our
+00:36:28 engine. It also allows us to avoid checking whether the logger exists
+00:36:33 before using it. Now we need to pass or better inject
+00:36:38 this dependency the log reference via the base class constructor. Before going further, it's
+00:36:45 important to understand that using the dependency injection design pattern can introduce some challenges.
+00:36:53 For example, if a class depends on many dependencies, we have to inject all of
+00:36:58 them and as a result, the list of constructor parameters can grow
+00:37:04 significantly. Of course, this is not desirable. To avoid this issue, we can
+00:37:11 adopt a specific strategy called dependency aggregation.
+00:37:16 This strategy involves injecting a single object or structure that groups
+00:37:22 all dependencies together instead of injecting them one by one. All right,
+00:37:29 let's create this kind of structure. First, let's create a common hero file
+00:37:34 inside the core module. As usual, let's add the DX3D
+00:37:40 name space. Here we can define the base descriptor structure which will group
+00:37:46 all dependencies required by the base class. In this case we have only one
+00:37:52 dependency the logger. So let's add a non reference to the
+00:38:08 logger. Great. Now let's go back to the base class and update the constructor to
+00:38:15 accept a base descriptor as its parameter. Remember to pass this
+00:38:21 parameter by reference and most importantly use the const keyword. This
+00:38:26 way we explicitly declare that the descriptor will be used in read only
+00:38:36 mode. Also, let's make the constructor explicit since it takes only one
+00:38:42 parameter. This helps avoid unintended implicit
+00:38:47 compressions. Great. We can now go ahead and implement our new
+00:38:53 constructor. Let's initialize the non-null logger reference in the member
+00:38:58 initializer list. Last but not least, let's add the get
+00:39:04 logger method to retrieve the logger
+00:39:12 reference. Just a quick note here, we are declaring this method as constant
+00:39:18 which means it doesn't modify the internal state of the class. We also use
+00:39:24 no except which tells the compiler that the function doesn't throw exceptions.
+00:39:30 And finally, we use final to prevent the method from being overridden in derived
+00:39:45 classes. All right. What we need to do now? We have to pass the reference to
+00:39:51 our logger to all the classes of our engine. Let's start with the game class.
+00:39:58 As we can see near the member initializer list, there is an error.
+00:40:04 This happens because we are now required to pass the base descriptor in the constructor of our base class. To fix
+00:40:12 this, we can use brace initialization to pass the base descriptor.
+00:40:17 Now we are also required to pass a nonnull reference to the logger. We can
+00:40:23 safely reuse the make unique method we used previously. But there is a problem. We
+00:40:31 created a unique pointer to the logger. But here we need a reference not a smart
+00:40:37 pointer. Not only that, we also need to detach the logger instance from the
+00:40:43 unique pointer. Otherwise, as as soon as the brace initialization of the base
+00:40:48 descriptor finishes executing, the unique pointer will go out of scope and the logger will be deallocated. To
+00:40:55 detach the instance, we can call the release method. Then we need to the
+00:41:01 reference the row pointer returned by release using the star operator to get
+00:41:07 the non-null reference. So far so good. There is another issue
+00:41:14 though. Now the reference to our logger resides only inside the base
+00:41:20 class. So no one is managing its lifetime and no automatic de allocation
+00:41:26 will happen. Since we want the game class to be the only and unique owner of
+00:41:32 the logger, we can simply reingject the row pointer back into the unique
+00:41:37 pointer. All right, we are now managing the logger in a loosely coupled and
+00:41:43 modular way. What we need to do now is apply the same approach to the other
+00:41:49 classes. Let's go to the common hero file and create the window descriptor
+00:41:55 structure. Here instead of readding a reference to the logger, we simply
+00:42:00 include the base descriptor. In this way, we will be able to use it
+00:42:06 easily in the window constructor and at the same time we clearly and explicitly
+00:42:11 define the base descriptor as a component of the window descriptor. Let's repeat this same step
+00:42:19 for the other classes as well.
+00:42:34 At this point, let's go to the window heater file and add the window descriptor as a nomnull constant
+00:42:41 reference parameter in the constructor. As always, if the constructor has only
+00:42:46 one parameter, let's mark it as explicit. Let's implement it. Now we can
+00:42:54 easily pass the base descriptor to the base class via the member initializer
+00:43:14 list. Let's follow the exact same steps for the graphics engine and run the
+00:43:19 system classes.
+00:44:33 Great. Now our classes are ready to use the logger. Let's start by using it
+00:44:39 inside the Win32 Windows C++ file. For example, let's print an error message
+00:44:45 when register class X fails. Since we need the definition of the
+00:44:50 logger, let's go to the comm file and include the logger
+00:45:12 there. Of course, don't forget to include the commo heater in the window heater file as
+00:45:22 well. Now we can finally call the log method.
+00:45:42 Let's do the same thing when create window X fails.
+00:46:10 Naturally, we should also log an error message when direct 3D11 initialization
+00:46:16 fails.
+00:46:34 To make sure everything works, let's try passing an invalid value to the create device
+00:46:40 function. One last thing, we need to pass the logout reference to all the remaining classes. So let's go to the
+00:46:47 game C++ file and pass it to both the graphics engine and window.
+00:47:02 At this point, we need to head to the graphics engine C++ file and pass the
+00:47:07 logger reference to the render
+00:47:17 system. Great, we have nearly finished. Let's debug our program. As expected,
+00:47:24 the create device function has failed and the logger correctly prints the error
+00:47:44 message. As the very last step, we should allow setting the log level from
+00:47:50 the game constructor. So let's go to the common heer file and
+00:47:55 create the game descriptor structure. Here we can add the log level
+00:48:17 attribute as we have already done previously. Let's go to the game heer
+00:48:22 file and pass the game descriptor as a parameter to the game constructor. Let's also mark the
+00:48:29 constructor as explicit. In the end, let's implement it.
+00:48:45 Finally, in the main C++ file, let's pass our desired log level. For this
+00:48:51 example, let's set it to
+00:49:02 info. Don't forget to pass the log level to the logger constructor.
+00:49:13 And while we are at it, let's also fix the invalid value we previously passed
+00:49:18 to the create device function. Now if we try to debug it,
+00:49:25 everything should work properly. In this case, the logger prints all the messages
+00:49:30 including the information once. Let's test what happens if we set
+00:49:36 the log level to error instead. As expected, no messages are
+00:49:41 printed in the console window. That's all, folks. Today, we
+00:49:49 learned how to start building our graphics engine. We also initialized the
+00:49:54 direct 3D11 graphics API. Furthermore, we created a logger to
+00:50:00 print useful messages and integrated it across the subsystems of our engine
+00:50:06 using the dependency injection pattern and the dependency aggregation strategy.
+00:50:11 In the next episode, we will start working on one of the fundamental part of the rendering pipeline needed to
+00:50:19 render graphics on our window, the swap chain. I hope you enjoyed this video.
+00:50:26 See you soon. Thanks for watching.
+00:50:32 [Music]

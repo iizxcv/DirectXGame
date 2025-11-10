@@ -57,6 +57,7 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPAR
 // Window 클래스의 생성자입니다. Base 클래스의 생성자를 호출합니다.
 dx3d::Window::Window(const WindowDesc& desc)
 	: Base(desc.base)
+	, m_size(desc.size)
 {
 	// 윈도우 클래스를 등록하는 람다 함수를 정의합니다.
 	auto registerWindowClassFunction = []()
@@ -80,13 +81,14 @@ dx3d::Window::Window(const WindowDesc& desc)
 	// 윈도우 클래스 등록이 실패했는지 확인합니다.
 	if (!windowClassId){
 
-		getLogger().log(Logger::LogLevel::Error, "RegisterClassEx failed");
-		// 실패했다면 런타임 오류를 발생시킵니다.
-		throw std::runtime_error("RegisterClassEx failed.");
+		//getLogger().log(Logger::LogLevel::Error, "RegisterClassEx failed");
+		//// 실패했다면 런타임 오류를 발생시킵니다.
+		//throw std::runtime_error("RegisterClassEx failed.");
+		DX3DLogErrorAndThrow("CreateWindowEx failed.");
 	}
 
 	// 클라이언트 영역의 크기를 1280x720으로 설정하는 RECT 구조체를 정의합니다.
-	RECT rc{ 0,0,1280,720 };
+	RECT rc{ 0,0,m_size.width,m_size.height };
 	// 지정된 클라이언트 영역 크기를 얻기 위해 필요한 윈도우 전체 크기를 계산합니다.
 	// 윈도우 스타일(테두리, 캡션, 시스템 메뉴)을 고려합니다.
 	AdjustWindowRect(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, false);
@@ -109,9 +111,10 @@ dx3d::Window::Window(const WindowDesc& desc)
 
 	// 윈도우 생성이 실패했는지 확인합니다.
 	if (!m_handle){
-		getLogger().log(Logger::LogLevel::Error, "CreateWindowEx failed");
-		// 실패했다면 런타임 오류를 발생시킵니다.
-		throw std::runtime_error("CreateWindowEx failed.");
+		//getLogger().log(Logger::LogLevel::Error, "CreateWindowEx failed");
+		//// 실패했다면 런타임 오류를 발생시킵니다.
+		//throw std::runtime_error("CreateWindowEx failed.");
+		DX3DLogErrorAndThrow("CreateWindowEx failed.");
 	}
 
 

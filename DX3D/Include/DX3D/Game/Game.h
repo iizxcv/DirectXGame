@@ -29,20 +29,20 @@
 #include <DX3D/Core/Core.h>
 
 
+
 namespace dx3d
 {
 	class Game: public Base
 	{
 	public:
-		Game(const Logger::LogLevel& level = Logger::LogLevel::Info);
+		Game(const GameDesc& desc);
 		virtual ~Game() override;
 
 		virtual void run() final;
 	private:
-		Logger m_loggerInstance;
 		Logger* m_loggerPtr{};
 		std::unique_ptr<GraphicsEngine> m_graphicsEngine{}; 
-		std::unique_ptr<Window> m_display{};
+		std::unique_ptr<Display> m_display{};
 		bool m_isRunning{ true };
 	};
 }
