@@ -32,6 +32,10 @@ int main()
 {
 	try
 	{
+		// Game 객체를 생성할 때 GameDesc 구조체를 사용하여 초기화합니다.
+		// 중괄호 초기화(brace-initialization)를 통해 구조체 멤버들을 설정합니다.
+		// 첫 번째 {1280, 720}: GameDesc의 windowSize 멤버(Rect 타입)를 초기화합니다.
+		// 두 번째 {dx3d::Logger::LogLevel::Info}: GameDesc의 logLevel 멤버를 초기화합니다.
 		dx3d::Game game({ {1280, 720}, { dx3d::Logger::LogLevel::Info }
 	});
 		game.run();

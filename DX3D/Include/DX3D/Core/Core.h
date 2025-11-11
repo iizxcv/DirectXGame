@@ -37,14 +37,23 @@ namespace dx3d
 	class RenderSystem;
 
 	class Logger;
+	// SwapChain 클래스를 전방 선언합니다. 실제 정의를 포함하지 않고 이름만 알려주어 컴파일 속도를 높입니다.
 	class SwapChain;
+	// Display 클래스를 전방 선언합니다.
 	class Display;
 
+	// C++ 기본 데이터 타입에 대한 별칭(alias)을 정의하여 코드 가독성과 이식성을 높입니다.
+	// 32비트 정수
 	using i32 = int;
+	// 64비트 부호 없는 정수
 	using ui64 = unsigned int;
+	// 32비트 부동 소수점
 	using f32 = float;
+	// 64비트 부동 소수점
 	using d64 = double;
 
+	// SwapChain에 대한 std::shared_ptr의 별칭입니다.
+	// 이를 통해 SwapChain 객체의 수명을 여러 소유자가 안전하게 공유하여 관리할 수 있습니다.
 	using SwapChainPtr = std::shared_ptr<SwapChain>;
 
 }

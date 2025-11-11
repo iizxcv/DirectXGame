@@ -38,8 +38,13 @@ namespace dx3d
 		explicit Window(const WindowDesc& desc);
 		virtual ~Window() override;
 
+	// 접근 제어자가 private에서 protected로 변경되었습니다.
+	// 이는 자식 클래스인 Display에서 윈도우 핸들(m_handle)과 크기(m_size)에
+	// 접근하여 SwapChain을 생성할 수 있도록 하기 위함입니다.
 	protected:
+		// 윈도우 핸들(HWND)을 저장하는 포인터입니다.
 		void* m_handle{};
+		// 윈도우의 클라이언트 영역 크기(너비, 높이)를 저장합니다.
 		Rect m_size{};
 	};
 }
